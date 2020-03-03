@@ -105,15 +105,15 @@ plt.semilogy()
 plt.show()
 plt.close()
 
-filename='Aves_family.nwk.txt'
-with open(filename,'r') as f:
-  tree=parse(f.read())
-root=dummynode(id=-1,x=tree.x*1.05,name='root',children=[tree])
-plt.plot([a[0] for a in lineplot(root)],[a[1] for a in lineplot(root)],marker=None,label=filename)
-plt.legend(loc='upper left')
-plt.xlim(xmax=0)
-plt.ylim(ymin=0,ymax=len(list(tree.leaves))+1)
-plt.xlabel('million years before present')
-plt.ylabel('species')
-plt.show()
-plt.close()
+for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt']:
+  with open(filename,'r') as f:
+    tree=parse(f.read())
+  root=dummynode(id=-1,x=tree.x*1.05,name='root',children=[tree])
+  plt.plot([a[0] for a in lineplot(root)],[a[1] for a in lineplot(root)],marker=None,label=filename)
+  plt.legend(loc='upper left')
+  plt.xlim(xmax=0)
+  plt.ylim(ymin=0,ymax=len(list(tree.leaves))+1)
+  plt.xlabel('million years before present')
+  plt.ylabel('species')
+  plt.show()
+  plt.close()
