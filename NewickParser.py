@@ -67,8 +67,11 @@ def parse(newick):
         length=float(length) if length else 0.0
         thisnode.__init__(name=name.strip("'"), length=length, 
                 parent=parent, children=children)
-        return thisnode, delim
-    tree=recurse()[0]
+        if parent:
+          return thisnode, delim
+        else:
+          return thisnode
+    tree=recurse()
     tree.x=0.0
     maxx=0.0
     for node in tree.nodes:
