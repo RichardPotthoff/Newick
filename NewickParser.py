@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+from math import pi
 from itertools import accumulate
 import operator
 import re
@@ -45,6 +46,20 @@ def lineplot(node):
     for xy in lineplot(child):
       yield xy
     yield(node.x,child.y)
+    yield (node.x,node.y)
+    
+def lineplot_polar(node,maxdelta=5):
+  yield (node.x,node.y)
+  for child in node.children:
+    n=max(1,round(abs(node.y-child.y)/maxdelta))
+    for i in range(n):
+      xy=(node.x,(node.y*(n-i-1)+child.y*(i+1))/n)
+      yield xy
+    for xy in lineplot_polar(child,maxdelta):
+      yield xy
+    for i in range(n):
+      xy=(node.x,(node.y*i+child.y*(n-i))/n)
+      yield xy
     yield (node.x,node.y)
                   
 def parse(newick): 
@@ -115,5 +130,16 @@ for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt']:
   plt.ylim(ymin=0,ymax=len(list(tree.leaves))+1)
   plt.xlabel('million years before present')
   plt.ylabel('species')
+  plt.show()
+  plt.close()
+
+  leafcount=sum([1 for a in tree.leaves])
+  xy=[(a[1]/leafcount*pi*2,(a[0]-tree.x)) for a in lineplot_polar(tree,maxdelta=max(1,leafcount//100))]
+  plt.polar([a[0] for a in xy],[a[1] for a in xy],marker=None,label=filename)
+  plt.legend(loc='upper left')
+#  plt.xlim(xmax=0)
+  plt.ylim(ymin=0,ymax=-tree.x)
+  plt.ylabel('million years')
+  plt.xlabel('species')
   plt.show()
   plt.close()
