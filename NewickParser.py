@@ -48,19 +48,21 @@ def lineplot(node):
     yield(node.x,child.y)
     yield (node.x,node.y)
     
-def lineplot_polar(node,maxdelta=5):
-  yield (node.x,node.y)
+def lineplot_polar(node,max_dtheta=pi/100,theta_scale=None):
+  if not theta_scale:
+    theta_scale=2*pi/sum([1 for a in node.leaves])
+  yield (node.y*theta_scale,node.x)
   for child in node.children:
-    n=max(1,round(abs(node.y-child.y)/maxdelta))
+    n=max(1,round(abs(node.y-child.y)*theta_scale/max_dtheta))
     for i in range(n):
-      xy=(node.x,(node.y*(n-i-1)+child.y*(i+1))/n)
-      yield xy
-    for xy in lineplot_polar(child,maxdelta):
-      yield xy
+      theta_r=((node.y*(n-i-1)+child.y*(i+1))/n*theta_scale,node.x)
+      yield theta_r
+    for theta_r in lineplot_polar(child,max_dtheta=max_dtheta,theta_scale=theta_scale):
+      yield theta_r
     for i in range(n):
-      xy=(node.x,(node.y*i+child.y*(n-i))/n)
-      yield xy
-    yield (node.x,node.y)
+      theta_r=((node.y*i+child.y*(n-i))/n*theta_scale,node.x)
+      yield theta_r
+    yield (node.y*theta_scale,node.x)
                   
 def parse(newick): 
 #based on stackoverflow answer:
@@ -133,13 +135,15 @@ for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt']:
   plt.show()
   plt.close()
 
-  leafcount=sum([1 for a in tree.leaves])
-  xy=[(a[1]/leafcount*pi*2,(a[0]-tree.x)) for a in lineplot_polar(tree,maxdelta=max(1,leafcount//100))]
+  xy=[(a[0],(a[1]-tree.x)) for a in lineplot_polar(tree)]
   plt.polar([a[0] for a in xy],[a[1] for a in xy],marker=None,label=filename)
   plt.legend(loc='upper left')
 #  plt.xlim(xmax=0)
   plt.ylim(ymin=0,ymax=-tree.x)
-  plt.ylabel('million years')
-  plt.xlabel('species')
+#  plt.ylabel('million years before present')
+#  plt.xlabel('species')
+  timeticks=plt.yticks()[0]
+  plt.yticks([-tree.x-t for t in timeticks[:-1]],['{:.0f}'.format(-t) for t in timeticks[:-1]])
+  plt.xticks(plt.xticks()[0],())
   plt.show()
   plt.close()
