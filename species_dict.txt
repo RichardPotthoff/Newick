@@ -1,0 +1,27 @@
+Homo sapiens:human: Mensch
+Pan troglodytes:chimpanzee: Schimpanse
+Pongo pygmaeus:orang utan: Orang Utan
+Gorilla gorilla:gorilla: Gorilla
+Canis lupus:wolf: Wolf
+Anser anser:greylag goose:Graugans
+Branta canadensis:canada goose: Kanadagans
+Cygnus olor:mute swan: Höckerschwan
+Anas platyrhynchos:mallard: Stockente
+Dendrocygna eytoni:plumed whistling duck: Sichelpfeifgans
+Aix sponsa:wood duck: Brautente 
+Gallus gallus:chicken: Huhn
+Anseranas semipalmata:magpie goose: Spaltfußgans
+Mus musculus:mouse: Maus
+Equus asinus:donkey: Esel
+Equus caballus:horse: Pferd
+Equus burchellii:burchell's zebra: Zebra
+Archocentrus multispinosus:rainbow Cichlid: Regenbogenbarsch
+Tetraodon mbu:fresh water puffer fish: Goldringel-Kugelfisch
+Gasterosteus aculeatus:three spined stickleback: Dreistachliger Stichling
+Poecilia reticulata:guppy: Guppy
+Rosa villosa:rosa villosa: Apfel-Rose
+Pinus nigra: black pine: Schwarzkiefer
+Apis mellifera:bee: Honigbiene
+Pogonomyrmex barbatus:red harvester ant: Rote Ernteameise
+Volvox obversus:volvox:Volvox
+Euglena gracilis:euglena: Euglena
