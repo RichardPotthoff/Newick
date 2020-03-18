@@ -5,10 +5,17 @@ import operator
 import re
 from collections import namedtuple
 class Tree:
-  def __init__(self,newick=None,**kwargs):
-   self.__dict__=kwargs
-   if newick:
-     self.parse(newick)
+  def __init__(self,newick=None,parent=None,name=None,length=None):
+    self.children=[]
+    self.parent=parent
+    self.id=None
+    self.leafid=None
+    self.name=name
+    self.length=length
+    self.x=None
+#   self.__dict__=kwargs
+    if newick:
+      self.parse(newick)
   def __lt__(self,other):
     return self.x<other.x
   @property
@@ -82,17 +89,16 @@ class Tree:
     (\S)                                                         #group4: other character, e.g. "("
     """, newick+";",re.VERBOSE)
 # re syntax "(?: ...)" creates a non-capturing group.
-    def recurse(thisnode,parent=None): # one node
-      children = []
+    def recurse(thisnode): # one node
       name, length, delim, ch = tokens.pop(0)
       if ch == "(":
           while ch in "(,":
-              node, ch= recurse(Tree(),thisnode)
-              children.append(node)
+              node, ch= recurse(Tree(parent=thisnode))
+              thisnode.children.append(node)
           name, length, delim, ch = tokens.pop(0)
-      length=float(length) if length else 0.0
-      thisnode.__init__(name=name.strip("'").replace('_',' '), length=length, 
-              parent=parent, children=children)
+      length=float(length) if length else None
+      thisnode.name=name.strip("'").replace('_',' ')
+      thisnode.length=length
       return thisnode, delim
     recurse(self)
     self.x=0.0
@@ -153,7 +159,9 @@ for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nw
   with open(filename,'r') as f:
     tree=Tree(f.read())
   leafcount=len(list(tree.leaves))
-  root=Tree(id=-1,x=tree.x*1.05,name='root',children=[tree])
+  root=Tree()
+  root.children.append(tree)
+  root.x=1.05*tree.x
   plt.plot([a[0] for a in root.lineplot()],[a[1] for a in root.lineplot()],marker=None,label=filename)
   if leafcount<30:
     for node in tree.leaves:
