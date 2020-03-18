@@ -4,7 +4,7 @@ from itertools import accumulate
 import operator
 import re
 from collections import namedtuple
-class dummynode:
+class Tree:
   def __init__(self,**kwargs):
    self.__dict__=kwargs
   def __lt__(self,other):
@@ -40,30 +40,30 @@ class dummynode:
       if not node.isleaf:
         yield node
 
-def lineplot(node):
-  yield (node.x,node.y)
-  for child in node.children:
-    yield(node.x,child.y)
-    for xy in lineplot(child):
-      yield xy
-    yield(node.x,child.y)
-    yield (node.x,node.y)
+  def lineplot(self):
+    yield (self.x,self.y)
+    for child in self.children:
+      yield(self.x,child.y)
+      for xy in child.lineplot():
+        yield xy
+      yield(self.x,child.y)
+      yield (self.x,self.y)
     
-def lineplot_polar(node,max_dtheta=pi/100,theta_scale=None):
-  if not theta_scale:
-    theta_scale=2*pi/sum([1 for a in node.leaves])
-  yield (node.y*theta_scale,node.x)
-  for child in node.children:
-    n=max(1,round(abs(node.y-child.y)*theta_scale/max_dtheta))
-    for i in range(n):
-      theta_r=((node.y*(n-i-1)+child.y*(i+1))/n*theta_scale,node.x)
-      yield theta_r
-    for theta_r in lineplot_polar(child,max_dtheta=max_dtheta,theta_scale=theta_scale):
-      yield theta_r
-    for i in range(n):
-      theta_r=((node.y*i+child.y*(n-i))/n*theta_scale,node.x)
-      yield theta_r
-    yield (node.y*theta_scale,node.x)
+  def lineplot_polar(self,max_dtheta=pi/100,theta_scale=None):
+    if not theta_scale:
+      theta_scale=2*pi/sum([1 for a in self.leaves])
+    yield (self.y*theta_scale,self.x)
+    for child in self.children:
+      n=max(1,round(abs(self.y-child.y)*theta_scale/max_dtheta))
+      for i in range(n):
+        theta_r=((self.y*(n-i-1)+child.y*(i+1))/n*theta_scale,self.x)
+        yield theta_r
+      for theta_r in child.lineplot_polar(max_dtheta=max_dtheta,theta_scale=theta_scale):
+        yield theta_r
+      for i in range(n):
+        theta_r=((self.y*i+child.y*(n-i))/n*theta_scale,self.x)
+        yield theta_r
+      yield (self.y*theta_scale,self.x)
     
 def limitslope(alpha,limit=pi/4):
   if abs(limit)>(pi/2-1e-6):
@@ -86,7 +86,7 @@ def parse(newick):
     tokens = re.findall(r"([^:;,()'\s]*|'[^']*')(?:\s*:\s*([\d.]+)\s*)?([,);])|(\S)", newick+";")
 # re syntax "(?: ...)" creates a non-capturing group.
     def recurse(parent=None): # one node
-        thisnode=dummynode()
+        thisnode=Tree()
         children = []
         name, length, delim, ch = tokens.pop(0)
         if ch == "(":
@@ -113,6 +113,7 @@ def parse(newick):
     for i,node in enumerate(tree.leaves):
        node.leafid=i+1
     return tree    
+
 dictEntry=namedtuple('dictEntry','lt en de')    
 with open('species_dict.txt','r',encoding='utf-8')as f:
   speciesDict=[dictEntry(latin,english,deutsch) for latin,english,deutsch in re.findall('([^:]*):\s*([^:]*):\s*([^\n]*)\n',f.read())]
@@ -131,7 +132,7 @@ for filename in ['Aves_species.nwk.txt','Aves_genus.nwk.txt','Aves_family.nwk.tx
   time=[node.x for node in sortednodes]
   delta=[len(node.children)-1 for node in sortednodes]
   species=list(accumulate(delta))
-  print('Filename: {0:20s} Number of leaves: {1:4d} (vs. {3:2d} {2:4.1f} million years ago)'.format(filename,sum([1 for node in tree.leaves]),66.0,sum([(node.parent.x<a) and (node.x>a) for node in tree.nodes for a in (-66.043,) if node.parent])))
+#  print('Filename: {0:20s} Number of leaves: {1:4d} (vs. {3:2d} {2:4.1f} million years ago)'.format(filename,sum([1 for node in tree.leaves]),66.0,sum([(node.parent.x<a) and (node.x>a) for node in tree.nodes for a in (-66.043,) if node.parent])))
   plt.plot(time,species,label=filename)
 
 plt.legend(loc='upper left')
@@ -150,8 +151,8 @@ for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nw
   with open(filename,'r') as f:
     tree=parse(f.read())
   leafcount=len(list(tree.leaves))
-  root=dummynode(id=-1,x=tree.x*1.05,name='root',children=[tree])
-  plt.plot([a[0] for a in lineplot(root)],[a[1] for a in lineplot(root)],marker=None,label=filename)
+  root=Tree(id=-1,x=tree.x*1.05,name='root',children=[tree])
+  plt.plot([a[0] for a in root.lineplot()],[a[1] for a in root.lineplot()],marker=None,label=filename)
   if leafcount<30:
     for node in tree.leaves:
       plt.text(node.x,node.y,' '+translate(node.name,'de'),va='center',ha='left',size='small')
@@ -166,7 +167,7 @@ for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nw
   plt.rc('ytick', labelsize='small')
   fig=plt.figure()#figsize=(8,8.7))
   dtheta=6.7*2*pi/leafcount
-  xy=[(a[0]+dtheta,(a[1]-tree.x)) for a in lineplot_polar(tree)]
+  xy=[(a[0]+dtheta,(a[1]-tree.x)) for a in tree.lineplot_polar()]
   plt.polar([a[0] for a in xy],[a[1] for a in xy],marker=None,label=filename)
   if leafcount<30*pi:
     for node in tree.leaves:
