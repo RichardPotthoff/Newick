@@ -5,14 +5,14 @@ import operator
 import re
 from collections import namedtuple
 class Tree:
-  def __init__(self,newick=None,parent=None,name=None,length=None):
-    self.children=[]
+  def __init__(self,newick=None,parent=None,name=None,length=None,x=None,children=None):
+    self.children=children if children else []
     self.parent=parent
     self.id=None
     self.leafid=None
     self.name=name
     self.length=length
-    self.x=None
+    self.x=x
 #   self.__dict__=kwargs
     if newick:
       self.parse(newick)
@@ -159,9 +159,7 @@ for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nw
   with open(filename,'r') as f:
     tree=Tree(f.read())
   leafcount=len(list(tree.leaves))
-  root=Tree()
-  root.children.append(tree)
-  root.x=1.05*tree.x
+  root=Tree(x=1.05*tree.x,children=[tree])
   plt.plot([a[0] for a in root.lineplot()],[a[1] for a in root.lineplot()],marker=None,label=filename)
   if leafcount<30:
     for node in tree.leaves:
