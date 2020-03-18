@@ -1,5 +1,5 @@
 from matplotlib import pyplot as plt
-from math import pi
+from math import pi,sin,cos,tan,atan2
 from itertools import accumulate
 import operator
 import re
@@ -64,6 +64,18 @@ def lineplot_polar(node,max_dtheta=pi/100,theta_scale=None):
       theta_r=((node.y*i+child.y*(n-i))/n*theta_scale,node.x)
       yield theta_r
     yield (node.y*theta_scale,node.x)
+    
+def limitslope(alpha,limit=pi/4):
+  if abs(limit)>(pi/2-1e-6):
+    return alpha
+  s=sin(alpha)
+  c=cos(alpha)
+  if abs(limit)<1e-6:
+    return 0 if c>0 else pi
+  t=tan(abs(limit))
+  return atan2(s,c+(1/t if c>0 else -1/t))
+  
+  
                   
 def parse(newick): 
 #based on stackoverflow answer:
@@ -132,7 +144,9 @@ plt.semilogy()
 plt.show()
 plt.close()
 #print(plt.rcParams['figure.figsize'])
-for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nwk.txt']:
+for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nwk.txt']: 
+  plt.rcdefaults()
+  plt.figure()
   with open(filename,'r') as f:
     tree=parse(f.read())
   leafcount=len(list(tree.leaves))
@@ -140,7 +154,7 @@ for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nw
   plt.plot([a[0] for a in lineplot(root)],[a[1] for a in lineplot(root)],marker=None,label=filename)
   if leafcount<30:
     for node in tree.leaves:
-      plt.text(node.x,node.y,' '+translate(node.name,'de'),va='center',ha='left')
+      plt.text(node.x,node.y,' '+translate(node.name,'de'),va='center',ha='left',size='small')
   plt.legend(loc='upper left')
   plt.xlim(xmax=0)
   plt.ylim(ymin=0,ymax=leafcount+1)
@@ -148,22 +162,30 @@ for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nw
   plt.ylabel('species')
   plt.show()
   plt.close()
-#  plt.figure(figsize=(8,8.7))
-  xy=[(a[0],(a[1]-tree.x)) for a in lineplot_polar(tree)]
+  plt.rcdefaults()
+  plt.rc('ytick', labelsize='small')
+  fig=plt.figure()#figsize=(8,8.7))
+  dtheta=6.7*2*pi/leafcount
+  xy=[(a[0]+dtheta,(a[1]-tree.x)) for a in lineplot_polar(tree)]
   plt.polar([a[0] for a in xy],[a[1] for a in xy],marker=None,label=filename)
   if leafcount<30*pi:
     for node in tree.leaves:
-      theta=node.y/leafcount*pi*2
+      theta=node.y/leafcount*pi*2+dtheta
       flip=1 if ((theta/(2*pi)+0.25)%1)>0.5 else 0
-      plt.text(theta,-tree.x,' '+translate(node.name,'de')+(' .' if flip else''),rotation=(theta/pi+flip)*180,rotation_mode='anchor',va='center',ha=('left','right')[flip])
-
-  plt.legend(loc='upper left')
+      plt.text(theta,-tree.x,' '+translate(node.name,'de')+(' .' if flip else''),rotation=(limitslope(theta,45*pi/180)/pi+flip)*180,rotation_mode='anchor',va='center',ha=('left','right')[flip],fontsize='small') 
+  else:
+    plt.legend(loc='upper left')
 #  plt.xlim(xmax=0)
   plt.ylim(ymin=0,ymax=-tree.x)
 #  plt.ylabel('million years before present')
 #  plt.xlabel('species')
   timeticks=plt.yticks()[0]
-  plt.yticks([-tree.x-t for t in timeticks[:-1]],['{:.0f}'.format(-t) for t in timeticks[:-1]])
+  #set_rlabel_position(85)
+  fig.axes[0].set_rlabel_position(90)
+  fig.axes[0].tick_params(labelleft=False, labelright=True,
+               labeltop=False, labelbottom=False)
+  plt.yticks([-tree.x-t for t in timeticks[:-1]],['{:.0f}'.format(-t) for t in timeticks[:-1]],va='center',ha='center',bbox=dict(color='white',alpha=0.5))
   plt.xticks(plt.xticks()[0],())
   plt.show()
   plt.close()
+  
