@@ -72,37 +72,39 @@ class Tree:
   #https://stackoverflow.com/questions/51373300/how-to-convert-newick-tree-format-to-a-tree-like-hierarchical-object/51375562#51375562
   #by https://stackoverflow.com/users/5459839/trincot 
   
-  #    tokens = re.findall(r"([^:;,()\s]*)(?:\s*:\s*([\d.]+)\s*)?([,);])|(\S)", newick+";")
-      tokens = re.findall(r"([^:;,()'\s]*|'[^']*')(?:\s*:\s*([+-]?(?:\d+(?:[.]\d*)?(?:e[+-]?\d+)?|[.]\d+(?:e[+-]?\d+)?))\s*)?([,);])|(\S)", newick+";")
-  # re syntax "(?: ...)" creates a non-capturing group.
-      def recurse(newnode,parent=None): # one node
-          thisnode=newnode
-          children = []
+  #    tokens = re.findall(r"""([^:;,()\s]*)(?:\s*:\s*([\d.]+)\s*)?([,);])|(\S)", newick+";")
+    tokens = re.findall(r"""
+    ([^:;,()'\s]*|'[^']*')                                       #group1: name or 'name'(possibly empty)
+    (?:\s*:\s*                                                   #group2: length (sepatator ":")
+    ([+-]?(?:\d+(?:[.]\d*)?(?:e[+-]?\d+)?|[.]\d+(?:e[+-]?\d+)?)) #group2: floating point number (captured)
+    \s*)?                                                        #group2 is optional
+    ([,);])|                                                     #group3: delimiter or
+    (\S)                                                         #group4: other character, e.g. "("
+    """, newick+";",re.VERBOSE)
+# re syntax "(?: ...)" creates a non-capturing group.
+    def recurse(thisnode,parent=None): # one node
+      children = []
+      name, length, delim, ch = tokens.pop(0)
+      if ch == "(":
+          while ch in "(,":
+              node, ch= recurse(Tree(),thisnode)
+              children.append(node)
           name, length, delim, ch = tokens.pop(0)
-          if ch == "(":
-              while ch in "(,":
-                  node, ch= recurse(Tree(),thisnode)
-                  children.append(node)
-              name, length, delim, ch = tokens.pop(0)
-          length=float(length) if length else 0.0
-          thisnode.__init__(name=name.strip("'").replace('_',' '), length=length, 
-                  parent=parent, children=children)
-          if parent:
-            return thisnode, delim
-          else:
-            return thisnode
-      tree=recurse(self)
-      tree.x=0.0
-      maxx=0.0
-      for node in tree.nodes:
-        if node.parent:
-          node.x=node.parent.x+node.length
-          maxx=max(maxx,node.x)
-      for node in tree.nodes:
-        node.x-=maxx
-      for i,node in enumerate(tree.leaves):
-         node.leafid=i+1
-      return tree    
+      length=float(length) if length else 0.0
+      thisnode.__init__(name=name.strip("'").replace('_',' '), length=length, 
+              parent=parent, children=children)
+      return thisnode, delim
+    recurse(self)
+    self.x=0.0
+    maxx=0.0
+    for node in self.nodes:
+      if node.parent:
+        node.x=node.parent.x+node.length
+        maxx=max(maxx,node.x)
+    for node in self.nodes:
+      node.x-=maxx
+    for i,node in enumerate(self.leaves):
+       node.leafid=i+1    
 
 def limitslope(alpha,limit=pi/4):
   if abs(limit)>(pi/2-1e-6):
