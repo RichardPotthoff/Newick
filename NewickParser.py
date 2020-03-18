@@ -5,8 +5,10 @@ import operator
 import re
 from collections import namedtuple
 class Tree:
-  def __init__(self,**kwargs):
+  def __init__(self,newick=None,**kwargs):
    self.__dict__=kwargs
+   if newick:
+     self.parse(newick)
   def __lt__(self,other):
     return self.x<other.x
   @property
@@ -64,7 +66,44 @@ class Tree:
         theta_r=((self.y*i+child.y*(n-i))/n*theta_scale,self.x)
         yield theta_r
       yield (self.y*theta_scale,self.x)
-    
+                  
+  def parse(self,newick): 
+  #based on stackoverflow answer:
+  #https://stackoverflow.com/questions/51373300/how-to-convert-newick-tree-format-to-a-tree-like-hierarchical-object/51375562#51375562
+  #by https://stackoverflow.com/users/5459839/trincot 
+  
+  #    tokens = re.findall(r"([^:;,()\s]*)(?:\s*:\s*([\d.]+)\s*)?([,);])|(\S)", newick+";")
+      tokens = re.findall(r"([^:;,()'\s]*|'[^']*')(?:\s*:\s*([+-]?(?:\d+(?:[.]\d*)?(?:e[+-]?\d+)?|[.]\d+(?:e[+-]?\d+)?))\s*)?([,);])|(\S)", newick+";")
+  # re syntax "(?: ...)" creates a non-capturing group.
+      def recurse(newnode,parent=None): # one node
+          thisnode=newnode
+          children = []
+          name, length, delim, ch = tokens.pop(0)
+          if ch == "(":
+              while ch in "(,":
+                  node, ch= recurse(Tree(),thisnode)
+                  children.append(node)
+              name, length, delim, ch = tokens.pop(0)
+          length=float(length) if length else 0.0
+          thisnode.__init__(name=name.strip("'").replace('_',' '), length=length, 
+                  parent=parent, children=children)
+          if parent:
+            return thisnode, delim
+          else:
+            return thisnode
+      tree=recurse(self)
+      tree.x=0.0
+      maxx=0.0
+      for node in tree.nodes:
+        if node.parent:
+          node.x=node.parent.x+node.length
+          maxx=max(maxx,node.x)
+      for node in tree.nodes:
+        node.x-=maxx
+      for i,node in enumerate(tree.leaves):
+         node.leafid=i+1
+      return tree    
+
 def limitslope(alpha,limit=pi/4):
   if abs(limit)>(pi/2-1e-6):
     return alpha
@@ -75,45 +114,6 @@ def limitslope(alpha,limit=pi/4):
   t=tan(abs(limit))
   return atan2(s,c+(1/t if c>0 else -1/t))
   
-  
-                  
-def parse(newick): 
-#based on stackoverflow answer:
-#https://stackoverflow.com/questions/51373300/how-to-convert-newick-tree-format-to-a-tree-like-hierarchical-object/51375562#51375562
-#by https://stackoverflow.com/users/5459839/trincot 
-
-#    tokens = re.findall(r"([^:;,()\s]*)(?:\s*:\s*([\d.]+)\s*)?([,);])|(\S)", newick+";")
-    tokens = re.findall(r"([^:;,()'\s]*|'[^']*')(?:\s*:\s*([\d.]+)\s*)?([,);])|(\S)", newick+";")
-# re syntax "(?: ...)" creates a non-capturing group.
-    def recurse(parent=None): # one node
-        thisnode=Tree()
-        children = []
-        name, length, delim, ch = tokens.pop(0)
-        if ch == "(":
-            while ch in "(,":
-                node, ch= recurse(thisnode)
-                children.append(node)
-            name, length, delim, ch = tokens.pop(0)
-        length=float(length) if length else 0.0
-        thisnode.__init__(name=name.strip("'").replace('_',' '), length=length, 
-                parent=parent, children=children)
-        if parent:
-          return thisnode, delim
-        else:
-          return thisnode
-    tree=recurse()
-    tree.x=0.0
-    maxx=0.0
-    for node in tree.nodes:
-      if node.parent:
-        node.x=node.parent.x+node.length
-        maxx=max(maxx,node.x)
-    for node in tree.nodes:
-      node.x-=maxx
-    for i,node in enumerate(tree.leaves):
-       node.leafid=i+1
-    return tree    
-
 dictEntry=namedtuple('dictEntry','lt en de')    
 with open('species_dict.txt','r',encoding='utf-8')as f:
   speciesDict=[dictEntry(latin,english,deutsch) for latin,english,deutsch in re.findall('([^:]*):\s*([^:]*):\s*([^\n]*)\n',f.read())]
@@ -127,7 +127,7 @@ def translate(name,language):
 # Example use:
 for filename in ['Aves_species.nwk.txt','Aves_genus.nwk.txt','Aves_family.nwk.txt','Aves_order.nwk.txt']:
   with open(filename,'r') as f:
-    tree=parse(f.read())
+    tree=Tree(f.read())
   sortednodes=sorted(tree.nodes)
   time=[node.x for node in sortednodes]
   delta=[len(node.children)-1 for node in sortednodes]
@@ -149,7 +149,7 @@ for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nw
   plt.rcdefaults()
   plt.figure()
   with open(filename,'r') as f:
-    tree=parse(f.read())
+    tree=Tree(f.read())
   leafcount=len(list(tree.leaves))
   root=Tree(id=-1,x=tree.x*1.05,name='root',children=[tree])
   plt.plot([a[0] for a in root.lineplot()],[a[1] for a in root.lineplot()],marker=None,label=filename)
