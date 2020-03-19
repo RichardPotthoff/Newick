@@ -1,15 +1,17 @@
 from matplotlib import pyplot as plt
 from math import pi,sin,cos,tan,atan2
+import math
 from itertools import accumulate
 import operator
 import re
 from collections import namedtuple
 class Tree:
-  def __init__(self,newick=None,parent=None,name=None,length=None,x=None,children=None):
+  def __init__(self,newick=None,parent=None,name=None,length=math.nan,x=math.nan,children=None,id=-1,parent_id=-1):
     self.children=children if children else []
     self.parent=parent
-    self.id=None
-    self.leafid=None
+    self.id=id
+    self.parent_id=parent_id
+    self.leafid=-1
     self.name=name
     self.length=length
     self.x=x
@@ -18,6 +20,21 @@ class Tree:
       self.parse(newick)
   def __lt__(self,other):
     return self.x<other.x
+  def __repr__(self):
+#    args=[]
+#    if self.name: args.append('name={:s}'.format(self.name.__repr__()))
+#    if not math.isnan(self.length): args.append('length={:s}'.format(self.length.__repr__()))
+#    if len(self.children)!=0: args.append('children={:s}'.format(self.children.__repr__()))
+#    return "Tree({:s})".format(', '.join(args))
+    return 'Tree(newick="{:s}")'.format(self.newick)
+  @property
+  def newick(self):
+    s=''
+    if len(self.children)!=0: s+='({:s})'.format(','.join([c.newick for c in self.children]))
+    if self.name: s+=self.name.__repr__() if re.search("[:;,()'\"]",self.name) else self.name.replace(' ','_')
+    if not math.isnan(self.length): s+=':{:s}'.format(self.length.__repr__())
+    if not self.parent: s+=';'
+    return s
   @property
   def isleaf(self):
     return len(self.children)==0
@@ -81,7 +98,7 @@ class Tree:
   
   #    tokens = re.findall(r"""([^:;,()\s]*)(?:\s*:\s*([\d.]+)\s*)?([,);])|(\S)", newick+";")
     tokens = re.findall(r"""
-    ([^:;,()'\s]*|'[^']*')                                       #group1: name or 'name'(possibly empty)
+    ([^:;,()'"\s]*|'[^']*'|"[^"]*")                              #group1: name or 'name'(possibly empty)
     (?:\s*:\s*                                                   #group2: length (sepatator ":")
     ([+-]?(?:\d+(?:[.]\d*)?(?:e[+-]?\d+)?|[.]\d+(?:e[+-]?\d+)?)) #group2: floating point number (captured)
     \s*)?                                                        #group2 is optional
@@ -96,15 +113,16 @@ class Tree:
               node, ch= recurse(Tree(parent=thisnode))
               thisnode.children.append(node)
           name, length, delim, ch = tokens.pop(0)
-      length=float(length) if length else None
+      length=float(length) if length else math.nan
       thisnode.name=name.strip("'").replace('_',' ')
       thisnode.length=length
       return thisnode, delim
     recurse(self)
     self.x=0.0
     maxx=0.0
-    for node in self.nodes:
-      if node.parent:
+    for id,node in enumerate(self.nodes):
+      node.id=id
+      if  node.parent:
         node.x=node.parent.x+node.length
         maxx=max(maxx,node.x)
     for node in self.nodes:
@@ -197,4 +215,4 @@ for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nw
   plt.xticks(plt.xticks()[0],())
   plt.show()
   plt.close()
-  
+#print(tree)
