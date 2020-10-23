@@ -53,8 +53,7 @@ class Tree:
   def nodes(self):
     yield self
     for child in self.children:
-      for node in child.nodes:
-        yield node
+       yield from child.nodes
   @property
   def leaves(self):
     for node in self.nodes:
@@ -70,8 +69,7 @@ class Tree:
     yield (self.x,self.y)
     for child in self.children:
       yield(self.x,child.y)
-      for xy in child.lineplot():
-        yield xy
+      yield from child.lineplot()
       yield(self.x,child.y)
       yield (self.x,self.y)
     
@@ -151,68 +149,73 @@ def translate(name,language):
   return tl if tl else name
   
 # Example use:
-for filename in ['Aves_species.nwk.txt','Aves_genus.nwk.txt','Aves_family.nwk.txt','Aves_order.nwk.txt']:
-  with open(filename,'r') as f:
-    tree=Tree(f.read())
-  sortednodes=sorted(tree.nodes)
-  time=[node.x for node in sortednodes]
-  delta=[len(node.children)-1 for node in sortednodes]
-  species=list(accumulate(delta))
-#  print('Filename: {0:20s} Number of leaves: {1:4d} (vs. {3:2d} {2:4.1f} million years ago)'.format(filename,sum([1 for node in tree.leaves]),66.0,sum([(node.parent.x<a) and (node.x>a) for node in tree.nodes for a in (-66.043,) if node.parent])))
-  plt.plot(time,species,label=filename)
-
-plt.legend(loc='upper left')
-plt.xlabel('million years before present')
-plt.ylabel('number of species, ...')
-plt.ylim(ymin=0.0)
-plt.show()
-plt.ylim(ymin=1.0)
-plt.semilogy()
-plt.show()
-plt.close()
-#print(plt.rcParams['figure.figsize'])
-for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nwk.txt']: 
-  plt.rcdefaults()
-  plt.figure()
-  with open(filename,'r') as f:
-    tree=Tree(f.read())
-  leafcount=len(list(tree.leaves))
-  root=Tree(x=1.05*tree.x,children=[tree])
-  plt.plot([a[0] for a in root.lineplot()],[a[1] for a in root.lineplot()],marker=None,label=filename)
-  if leafcount<30:
-    for node in tree.leaves:
-      plt.text(node.x,node.y,' '+translate(node.name,'de'),va='center',ha='left',size='small')
+def main():
+  for filename in ['Aves_species.nwk.txt','Aves_genus.nwk.txt','Aves_family.nwk.txt','Aves_order.nwk.txt']:
+    with open(filename,'r') as f:
+      tree=Tree(f.read())
+    sortednodes=sorted(tree.nodes)
+    time=[node.x for node in sortednodes]
+    delta=[len(node.children)-1 for node in sortednodes]
+    species=list(accumulate(delta))
+  #  print('Filename: {0:20s} Number of leaves: {1:4d} (vs. {3:2d} {2:4.1f} million years ago)'.format(filename,sum([1 for node in tree.leaves]),66.0,sum([(node.parent.x<a) and (node.x>a) for node in tree.nodes for a in (-66.043,) if node.parent])))
+    plt.plot(time,species,label=filename)
+  
   plt.legend(loc='upper left')
-  plt.xlim(xmax=0)
-  plt.ylim(ymin=0,ymax=leafcount+1)
   plt.xlabel('million years before present')
-  plt.ylabel('species')
+  plt.ylabel('number of species, ...')
+  plt.ylim(ymin=0.0)
+  plt.show()
+  plt.ylim(ymin=1.0)
+  plt.semilogy()
   plt.show()
   plt.close()
-  plt.rcdefaults()
-  plt.rc('ytick', labelsize='small')
-  fig=plt.figure()#figsize=(8,8.7))
-  dtheta=6.7*2*pi/leafcount
-  xy=[(a[0]+dtheta,(a[1]-tree.x)) for a in tree.lineplot_polar()]
-  plt.polar([a[0] for a in xy],[a[1] for a in xy],marker=None,label=filename)
-  if leafcount<30*pi:
-    for node in tree.leaves:
-      theta=node.y/leafcount*pi*2+dtheta
-      flip=1 if ((theta/(2*pi)+0.25)%1)>0.5 else 0
-      plt.text(theta,-tree.x,' '+translate(node.name,'de')+(' .' if flip else''),rotation=(limitslope(theta,45*pi/180)/pi+flip)*180,rotation_mode='anchor',va='center',ha=('left','right')[flip],fontsize='small') 
-  else:
+  #print(plt.rcParams['figure.figsize'])
+  for filename in ['Aves_family.nwk.txt', 'Euteleostomi_family.nwk.txt','myTree.nwk.txt']: 
+    plt.rcdefaults()
+    plt.figure()
+    with open(filename,'r') as f:
+      tree=Tree(f.read())
+    leafcount=len(list(tree.leaves))
+    root=Tree(x=1.05*tree.x,children=[tree])
+    plt.plot([a[0] for a in root.lineplot()],[a[1] for a in root.lineplot()],marker=None,label=filename)
+    if leafcount<30:
+      for node in tree.leaves:
+        plt.text(node.x,node.y,' '+translate(node.name,'de'),va='center',ha='left',size='small')
     plt.legend(loc='upper left')
-#  plt.xlim(xmax=0)
-  plt.ylim(ymin=0,ymax=-tree.x)
-#  plt.ylabel('million years before present')
-#  plt.xlabel('species')
-  timeticks=plt.yticks()[0]
-  #set_rlabel_position(85)
-  fig.axes[0].set_rlabel_position(90)
-  fig.axes[0].tick_params(labelleft=False, labelright=True,
-               labeltop=False, labelbottom=False)
-  plt.yticks([-tree.x-t for t in timeticks[:-1]],['{:.0f}'.format(-t) for t in timeticks[:-1]],va='center',ha='center',bbox=dict(color='white',alpha=0.5))
-  plt.xticks(plt.xticks()[0],())
-  plt.show()
-  plt.close()
-#print(tree)
+    plt.xlim(xmax=0)
+    plt.ylim(ymin=0,ymax=leafcount+1)
+    plt.xlabel('million years before present')
+    plt.ylabel('species')
+    plt.show()
+    plt.close()
+    plt.rcdefaults()
+    plt.rc('ytick', labelsize='small')
+    fig=plt.figure()#figsize=(8,8.7))
+    dtheta=6.7*2*pi/leafcount
+    xy=[(a[0]+dtheta,(a[1]-tree.x)) for a in tree.lineplot_polar()]
+    plt.polar([a[0] for a in xy],[a[1] for a in xy],marker=None,label=filename)
+    if leafcount<30*pi:
+      for node in tree.leaves:
+        theta=node.y/leafcount*pi*2+dtheta
+        flip=1 if ((theta/(2*pi)+0.25)%1)>0.5 else 0
+        plt.text(theta,-tree.x,' '+translate(node.name,'de')+(' .' if flip else''),rotation=(limitslope(theta,45*pi/180)/pi+flip)*180,rotation_mode='anchor',va='center',ha=('left','right')[flip],fontsize='small') 
+    else:
+      plt.legend(loc='upper left')
+  #  plt.xlim(xmax=0)
+    plt.ylim(ymin=0,ymax=-tree.x)
+  #  plt.ylabel('million years before present')
+  #  plt.xlabel('species')
+    timeticks=plt.yticks()[0]
+    #set_rlabel_position(85)
+    fig.axes[0].set_rlabel_position(90)
+    fig.axes[0].tick_params(labelleft=False, labelright=True,
+                 labeltop=False, labelbottom=False)
+    plt.yticks([-tree.x-t for t in timeticks[:-1]],['{:.0f}'.format(-t) for t in timeticks[:-1]],va='center',ha='center',bbox=dict(color='white',alpha=0.5))
+    plt.xticks(plt.xticks()[0],())
+    plt.show()
+    plt.close()
+  #print(tree)
+  
+if __name__=='__main__':
+  pass
+#  main()
