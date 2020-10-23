@@ -82,8 +82,7 @@ class Tree:
       for i in range(n):
         theta_r=((self.y*(n-i-1)+child.y*(i+1))/n*theta_scale,self.x)
         yield theta_r
-      for theta_r in child.lineplot_polar(max_dtheta=max_dtheta,theta_scale=theta_scale):
-        yield theta_r
+      yield from child.lineplot_polar(max_dtheta=max_dtheta,theta_scale=theta_scale)
       for i in range(n):
         theta_r=((self.y*i+child.y*(n-i))/n*theta_scale,self.x)
         yield theta_r
