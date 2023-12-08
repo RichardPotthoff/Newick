@@ -1,8 +1,23 @@
 import json
+from zipfile import ZipFile
+from contextlib import ExitStack
+import ntpath
+import io
+
 class SpeciesDB(object):
-  def __init__(self,filename='ITIS.json'):
+  def __init__(self,filename='ITIS.zip'): 
     self.filename=filename
-    with open(self.filename,'r',encoding='utf-8') as f:
+#    with open(self.filename,'r',encoding='utf-8') as f:
+    fn,ext=ntpath.splitext(filename)
+    with ExitStack() as es:
+      if ext.upper()=='.ZIP': 
+        fz=es.enter_context(ZipFile(filename))
+  #      print(fz.namelist()) 
+  #      fz.printdir()
+        fb=es.enter_context(fz.open(fz.namelist()[0]))# assumes that there is only one file
+        f=es.enter_context(io.TextIOWrapper(fb,encoding='utf-8'))
+      else:
+        f=es.enter_context(open(filename,'r'))    
       data=json.load(f)
     self.languages=data['Languages']
     self.ld={name.casefold():i for i,name in enumerate(self.languages)}
