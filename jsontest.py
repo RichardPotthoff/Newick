@@ -3,6 +3,7 @@ from zipfile import ZipFile
 from contextlib import ExitStack
 import ntpath
 import io
+from collections import defaultdict
 
 class SpeciesDB(object):
   def __init__(self,filename='ITIS.zip'): 
@@ -27,10 +28,12 @@ class SpeciesDB(object):
     self.dbl=data['db']
     id_unspecified=self.ld['unspecified'.casefold()]
     id_english=self.ld['English'.casefold()]
+    self.lancount=defaultdict(int)
     for species in self.dbl:
-      for name in species:
+      for name in species: 
         if name[1]==id_unspecified:
           name[1]=id_english    
+        self.lancount[name[1]]+=1
     self.dbd={name[0].casefold():dataset for dataset in self.dbl for name in dataset[1:]}
     self.dbd.update({name[0].casefold():dataset for dataset in self.dbl for name in dataset[:1]})
 
@@ -44,7 +47,7 @@ class SpeciesDB(object):
       return 'Language "{:s}" is not in the database.'.format(language)
     for x in reversed(species):#compare last entry first: appended entries override previous ones
       if x[1]==language_id:return x[0]
-    return self.dbd[name][0][0] #return the scientific name if no translation is found for the target language
+    return self.dbd[name.casefold()][0][0] #return the scientific name if no translation is found for the target language
   def addName(self,speciesname,newlanguage,newname,approved_ind='N'):
     species=self.dbd.get(speciesname.casefold())
     if not species: 
@@ -78,6 +81,7 @@ if __name__=='__main__':
   for s in speciesDict:
     db.addName(s.lt,'English',s.en)
     db.addName(s.lt,'German',s.de)
+    pass
   
   db.addSpecies('Unicornis')
   db.addName('Unicornis','Deutsch','Einhorn')
